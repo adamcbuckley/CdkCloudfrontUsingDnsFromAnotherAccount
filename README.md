@@ -1,4 +1,4 @@
-This sample project demonstrates how to serve static web content using a Cloudfront distribution. The Cloudfront distribution is given a domain name and an HTTPS certificate, even though the Route 53 hosted zone is owned by a different AWS Account (the parent account).
+This sample project demonstrates how to use the AWS CDK serve static web content using a Cloudfront distribution. The Cloudfront distribution is given a domain name and an HTTPS certificate, even though the Route 53 hosted zone is owned by a different AWS Account (the parent account).
 
 ## Instructions
 
