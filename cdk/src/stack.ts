@@ -36,12 +36,13 @@ export class ProjectStack extends Stack {
         // Create a "delegated aka "sub" DNS hosted zone specifically for this stack
         // This means that this stack has its own hosted zone where it can edit its own DNS records
         const projectDomainName = STACK_NAME + "." + DOMAIN_NAME;
-        const projectHostedZone = new route53.PublicHostedZone(this, "subHostedZone", {zoneName: projectDomainName});
+        const projectHostedZone = new route53.PublicHostedZone(this, "projectHostedZone", {zoneName: projectDomainName});
+        new CfnOutput(this, "projectHostedZoneId", {value: projectHostedZone.hostedZoneId});
 
         // Create DNS (nameserver) records in the parent zone which point to this sub zone
         // To perform this task, we must assume a specific role provided by the parent account
         const parentHostedZoneEditorRole = Role.fromRoleArn(this, "parentHostedZoneEditorRole", PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN);
-        new route53.CrossAccountZoneDelegationRecord(this, "subHostedZoneDelegate", {
+        new route53.CrossAccountZoneDelegationRecord(this, "projectHostedZoneDelegate", {
             delegatedZone: projectHostedZone,
             parentHostedZoneName: DOMAIN_NAME,
             delegationRole: parentHostedZoneEditorRole,
