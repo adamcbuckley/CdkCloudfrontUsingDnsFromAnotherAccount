@@ -42,7 +42,8 @@ class ProjectStack extends Stack {
 
 
 /**
- * The
+ * The HTTPS certificate MUST be created in the us-east-1 region.  For convenience, non-region-specific resources such
+ * as DNS records and the Cloudfront distribution are also created in this region.
  */
 class UsEastStack extends Stack {
 
@@ -101,13 +102,15 @@ class UsEastStack extends Stack {
         new CfnOutput(this, "wwwDistributionId", {value: wwwDistribution.distributionId});
 
 
-        // Register Route 53 record
+        // Register Route 53 DNS A record
         new route53.ARecord(this, "dnsRecord", {
             zone: projectHostedZone,
             target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(wwwDistribution)),
 
-            // Omitting 'recordName' will create a record for the zone root
-            // recordName: STACK_NAME,
+            // Omitting recordName will create a record for the zone root, e.g. hello.example.com
+            // If we did specify a value then the record will be created for a subdomain, e.g. www.hello.example.com
+
+            // recordName: "www",
         });
         new CfnOutput(this, "projectDomainName", {value: projectDomainName});
     }
