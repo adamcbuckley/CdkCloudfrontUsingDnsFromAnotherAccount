@@ -20,26 +20,46 @@ const DOMAIN_NAME = process.env.DOMAIN_NAME!;
 const PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN = process.env.PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN!;
 
 
-export class ProjectStack extends Stack {
+/**
+ * The Project stack is created in the default AWS region
+ */
+class ProjectStack extends Stack {
+
+    public readonly wwwBucket: s3.Bucket;
+
     constructor(scope: Construct, id: string, props?: StackProps) {
         super(scope, id, props);
 
         // Create bucket for static web content
-        const wwwBucket = new s3.Bucket(this, "wwwBucket", {
+        this.wwwBucket = new s3.Bucket(this, "wwwBucket", {
             blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
             removalPolicy: RemovalPolicy.DESTROY,
         });
 
-        new CfnOutput(this, "wwwBucketName", {value: wwwBucket.bucketName});
+        new CfnOutput(this, "wwwBucketName", {value: this.wwwBucket.bucketName});
+    }
+}
 
 
-        // Create a "delegated aka "sub" DNS hosted zone specifically for this stack
+/**
+ * The
+ */
+class UsEastStack extends Stack {
+
+    public certificate: acm.Certificate;
+
+    constructor(scope: Construct, id: string, wwwBucket: s3.Bucket, props?: StackProps) {
+        super(scope, id, props);
+
+
+        // Create a "delegated" (sub) hosted zone specifically for this stack
         // This means that this stack has its own hosted zone where it can edit its own DNS records
         const projectDomainName = STACK_NAME + "." + DOMAIN_NAME;
         const projectHostedZone = new route53.PublicHostedZone(this, "projectHostedZone", {zoneName: projectDomainName});
         new CfnOutput(this, "projectHostedZoneId", {value: projectHostedZone.hostedZoneId});
 
-        // Create DNS (nameserver) records in the parent zone which point to this sub zone
+
+        // Create an NS record in the PARENT ZONE which points to this sub zone
         // To perform this task, we must assume a specific role provided by the parent account
         const parentHostedZoneEditorRole = Role.fromRoleArn(this, "parentHostedZoneEditorRole", PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN);
         new route53.CrossAccountZoneDelegationRecord(this, "projectHostedZoneDelegate", {
@@ -49,13 +69,14 @@ export class ProjectStack extends Stack {
         });
 
 
-        // Create SSL certificate, used by Cloudfront distribution
-        // Cloudformation will pause deployment until the domain has been validated using DNS records
-        // This is all handled automatically by the Cloudformation runtime
-        const certificate = new acm.DnsValidatedCertificate(this, "certificate", {
+        // Create an HTTPS certificate
+        // To be used by Cloudfront, this certificate MUST be created in the us-east-1 region
+        const certificate = new acm.Certificate(this, "certificate", {
             domainName: projectDomainName,
-            hostedZone: projectHostedZone,
-            region: "us-east-1",
+
+            // AWS Certificate Manager will validate that we own the domain name by writing a CNAME record
+            // to the project's hosted zone and then doing a public DNS lookup to verify that the record exists
+            validation: acm.CertificateValidation.fromDns(projectHostedZone),
         });
 
 
@@ -96,6 +117,17 @@ export class ProjectStack extends Stack {
 if (!STACK_NAME) throw new Error("STACK_NAME not defined");
 if (!DOMAIN_NAME) throw new Error("DOMAIN_NAME not defined");
 if (!PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN) throw new Error("PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN not defined");
+
 const app = new App();
-new ProjectStack(app, STACK_NAME);
+
+const projectStack = new ProjectStack(app, STACK_NAME + "-project", {
+    env: {region: "eu-west-2"},
+    crossRegionReferences: true
+});
+
+new UsEastStack(app, STACK_NAME + "-us-east", projectStack.wwwBucket, {
+    env: {region: "us-east-1"},
+    crossRegionReferences: true
+});
+
 app.synth();
