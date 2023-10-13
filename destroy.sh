@@ -9,11 +9,11 @@ exit # Comment out this line to proceed
 . ./context.sh
 
 # Empty www bucket - otherwise the stack cannot be destroyed
-WWW_BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='wwwBucketName'].OutputValue" --output text)
+WWW_BUCKET_NAME=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME-project" --query "Stacks[0].Outputs[?OutputKey=='wwwBucketName'].OutputValue" --output text)
 aws s3 rm --recursive s3://"$WWW_BUCKET_NAME"
 
 # Delete all CNAME records in the subzone - otherwise the stack cannot be destroyed
-HOSTED_ZONE_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='projectHostedZoneId'].OutputValue" --output text)
+HOSTED_ZONE_ID=$(aws cloudformation --region us-east-1 describe-stacks --stack-name "$STACK_NAME-us-east" --query "Stacks[0].Outputs[?OutputKey=='projectHostedZoneId'].OutputValue" --output text)
 LIST_RESOURCE_RECORD_SETS=$(aws route53 list-resource-record-sets --hosted-zone-id "$HOSTED_ZONE_ID" --query "ResourceRecordSets[?Type=='CNAME']" --output text)
 
 if [ -n "${LIST_RESOURCE_RECORD_SETS}" ]
@@ -48,7 +48,7 @@ fi
 
 # Destroy CDK
 cd cdk
-cdk destroy --force
+npm run destroy
 cd -
 
 # Delete logs

@@ -16,9 +16,16 @@ import {S3Origin} from "aws-cdk-lib/aws-cloudfront-origins";
 import {Role} from "aws-cdk-lib/aws-iam";
 
 const STACK_NAME = process.env.STACK_NAME!;
-const DOMAIN_NAME = process.env.DOMAIN_NAME!;
-const PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN = process.env.PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN!;
+if (!STACK_NAME) throw new Error("STACK_NAME not defined");
 
+const DOMAIN_NAME = process.env.DOMAIN_NAME!;
+if (!DOMAIN_NAME) throw new Error("DOMAIN_NAME not defined");
+
+const PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN = process.env.PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN!;
+if (!PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN) throw new Error("PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN not defined");
+
+const AWS_REGION = process.env.AWS_REGION!;
+if (!AWS_REGION) throw new Error("AWS_REGION not defined");
 
 /**
  * The Project stack is created in the default AWS region
@@ -117,14 +124,10 @@ class UsEastStack extends Stack {
 }
 
 
-if (!STACK_NAME) throw new Error("STACK_NAME not defined");
-if (!DOMAIN_NAME) throw new Error("DOMAIN_NAME not defined");
-if (!PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN) throw new Error("PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN not defined");
-
 const app = new App();
 
 const projectStack = new ProjectStack(app, STACK_NAME + "-project", {
-    env: {region: "eu-west-2"},
+    env: {region: AWS_REGION},
     crossRegionReferences: true
 });
 

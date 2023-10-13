@@ -2,3 +2,4 @@
 export STACK_NAME=hello
 export DOMAIN_NAME=example.com
 export PARENT_HOSTED_ZONE_EDITOR_ROLE_ARN="arn:aws:iam::111111111111:role/HostedZoneEditorRole"
+export AWS_REGION=eu-west-2

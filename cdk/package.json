@@ -1,7 +1,8 @@
 {
   "scripts": {
     "deploy": "cdk deploy --all --require-approval never",
-    "bootstrap": "cdk bootstrap"
+    "bootstrap": "cdk bootstrap",
+    "destroy": "cdk destroy --all --force"
   },
   "devDependencies": {
     "@types/node": "^20.8.4",
